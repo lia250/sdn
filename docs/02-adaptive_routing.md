@@ -38,16 +38,77 @@ class AdaptiveRouting(object):
         self._request_stats(event.connection)
 
     def _start_link_discovery(self):
-        """Send LLDP packets to discover links between switches"""
+        """Periodically send LLDP packets for topology discovery"""
+        log.info("Starting LLDP-based link discovery")
         for connection in core.openflow._connections.values():
             self._send_lldp_packet(connection)
+        core.callDelayed(5, self._start_link_discovery)  # Repeat every 5 seconds
 
     def _send_lldp_packet(self, connection):
-        """Send LLDP packet to discover links"""
+        """Send properly formatted LLDP packet for link discovery"""
+        # Ethernet header
+        eth_dst = b'\x01\x80\xc2\x00\x00\x0e'  # LLDP multicast MAC
+        eth_src = EthAddr("%012x" % connection.dpid).toRaw()  # Switch DPID as MAC
+        eth_type = b'\x88\xcc'  # LLDP ethertype
+        
+        # LLDP payload
+        # 1. Chassis ID TLV (mandatory)
+        chassis_id = b'\x02'  # TLV type 2 (Chassis ID)
+        chassis_length = b'\x07'  # Length 7 (for 8-byte DPID)
+        chassis_value = connection.dpid.to_bytes(8, 'big')  # DPID as value
+        chassis_tlv = chassis_id + chassis_length + chassis_value
+        
+        # 2. Port ID TLV (mandatory)
+        port_id = b'\x04'  # TLV type 4 (Port ID)
+        port_length = b'\x07'  # Length 7 (for 8-byte DPID)
+        port_value = connection.dpid.to_bytes(8, 'big')  # DPID as value
+        port_tlv = port_id + port_length + port_value
+        
+        # 3. TTL TLV (mandatory)
+        ttl_id = b'\x06'  # TLV type 6 (TTL)
+        ttl_length = b'\x02'  # Length 2
+        ttl_value = b'\x00\x78'  # TTL = 120 seconds
+        ttl_tlv = ttl_id + ttl_length + ttl_value
+        
+        # 4. End TLV (mandatory)
+        end_tlv = b'\x00\x00'  # End of LLDPDU
+        
+        # Combine all parts
+        lldp_payload = chassis_tlv + port_tlv + ttl_tlv + end_tlv
+        
+        # Create packet_out
         msg = of.ofp_packet_out()
-        msg.data = b'\x01\x80\xc2\x00\x00\x0e' + b'\x00'*6 + b'\x88\xcc' + b'\x00'*50
+        msg.data = eth_dst + eth_src + eth_type + lldp_payload
         msg.actions.append(of.ofp_action_output(port=of.OFPP_ALL))
         connection.send(msg)
+
+    def _handle_LLDP(self, event):
+        """Handle incoming LLDP packets for topology discovery"""
+        packet = event.parsed
+        src_dpid = event.connection.dpid
+        src_port = event.port
+        
+        try:
+            # Parse LLDP payload (basic parsing)
+            data = packet.payload
+            if len(data) < 8:
+                return
+                
+            # Extract neighbor DPID from Chassis ID TLV
+            # This assumes the Chassis ID is the DPID (as we sent it)
+            dst_dpid = int.from_bytes(data[7:15], 'big')
+            
+            # Update topology
+            if src_dpid not in self.topology:
+                self.topology[src_dpid] = {}
+            self.topology[src_dpid][dst_dpid] = src_port
+            
+            # Update network graph with default weight
+            self.graph.add_edge(src_dpid, dst_dpid, weight=1)
+            log.debug("Discovered link: %s (port %d) -> %s", 
+                     dpidToStr(src_dpid), src_port, dpidToStr(dst_dpid))
+        except Exception as e:
+            log.warning("Error processing LLDP packet: %s", e)
 
     def _request_stats(self, connection):
         """Periodically request flow statistics from switches"""
@@ -72,6 +133,11 @@ class AdaptiveRouting(object):
 
         dpid = event.dpid
         in_port = event.port
+
+        # Handle LLDP packets first
+        if packet.type == packet.LLDP_TYPE:
+            self._handle_LLDP(event)
+            return
 
         # Learn host location
         if packet.src not in self.mac_to_port[dpid]:
