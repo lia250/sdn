@@ -86,8 +86,31 @@ if __name__ == '__main__':
 python3 pox.py openflow.of_01 --port=6634 forwarding.simple_controller
 ```
 
+or 
+
+```
+./pox.py log.level --DEBUG  forwarding.simple_controller
+```
+
 # 4. 
 
 ```
 sudo python3 simple_topology.py
+```
+
+قبل از اجرای مجدد اسکریپت، این دستورات را اجرا کنید:
+```
+sudo mn -c  # تمیز کردن توپولوژی‌های قبلی Mininet
+sudo pkill -9 python3  # پایان دادن به تمام فرآیندهای پایتون
+sudo pkill -9 pox  # پایان دادن به فرآیندهای POX
+```
+
+حذف دستی اینترفیس‌های باقیمانده:
+```
+sudo ip link del s1-eth3 2>/dev/null
+sudo ip link del s2-eth3 2>/dev/null
+sudo ip link del s1-eth1 2>/dev/null
+sudo ip link del s1-eth2 2>/dev/null
+sudo ip link del s2-eth1 2>/dev/null
+sudo ip link del s2-eth2 2>/dev/null
 ```
