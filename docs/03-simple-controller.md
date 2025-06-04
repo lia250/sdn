@@ -89,5 +89,5 @@ python3 pox.py openflow.of_01 --port=6634 forwarding.simple_controller
 # 4. 
 
 ```
-sudo python simple_topology.py
+sudo python3 simple_topology.py
 ```
