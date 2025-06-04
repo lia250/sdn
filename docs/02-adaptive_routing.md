@@ -235,11 +235,11 @@ topos = {'adaptive': (lambda: adaptive())}
 # 3. run controller pox
 
 ```
-python3 pox.py openflow.of_01 --port=6634 forwarding.adaptive_routing
+./pox.py log.level --DEBUG  forwarding.adaptive_routing
 ```
 
 # 4. run mininet 
 
 ```
-sudo mn --custom adaptive_routing_topology.py --controller=remote,ip=127.0.0.1,port=6634 --topo=adaptive
+sudo mn --custom adaptive_routing_topology.py --controller=remote,ip=127.0.0.1 --topo=adaptive
 ```
