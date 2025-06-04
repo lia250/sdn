@@ -79,3 +79,15 @@ if __name__ == '__main__':
     setLogLevel('info')
     simpleTopo()
 ```
+
+# 3. run controller pox
+
+```
+python3 pox.py openflow.of_01 --port=6634 forwarding.simple_controller
+```
+
+# 4. 
+
+```
+sudo python simple_topology.py
+```
