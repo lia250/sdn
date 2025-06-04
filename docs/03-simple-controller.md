@@ -170,3 +170,7 @@ class LearningSwitch(object):
 def launch():
     core.registerNew(LearningSwitch)
 ```
+
+```
+./pox.py log.level --DEBUG learning_switch
+```
