@@ -19,13 +19,50 @@ class AdaptiveRouting(object):
         self.link_delays = {}      # {(src_dpid, dst_dpid): delay}
         self.topology = {}         # {dpid: {neighbor_dpid: port}}
         self.hosts = {}            # {host_ip: (attached_switch_dpid, host_mac)}
-        self.mac_to_port = {}      # {(dpid, mac): port}
+        self.mac_to_port = {}      # {dpid: {mac: port}}
         self.graph = nx.Graph()    # NetworkX graph for path calculation
+        self.link_discovery_started = False
 
     def _handle_ConnectionUp(self, event):
         log.info("Switch %s connected", dpidToStr(event.dpid))
         self.topology[event.dpid] = {}
+        self.mac_to_port[event.dpid] = {}
         self.graph.add_node(event.dpid)
+        
+        # Initialize link discovery
+        if not self.link_discovery_started:
+            self._start_link_discovery()
+            self.link_discovery_started = True
+
+        # Request flow stats periodically
+        self._request_stats(event.connection)
+
+    def _start_link_discovery(self):
+        """Send LLDP packets to discover links between switches"""
+        for connection in core.openflow._connections.values():
+            self._send_lldp_packet(connection)
+
+    def _send_lldp_packet(self, connection):
+        """Send LLDP packet to discover links"""
+        msg = of.ofp_packet_out()
+        msg.data = b'\x01\x80\xc2\x00\x00\x0e' + b'\x00'*6 + b'\x88\xcc' + b'\x00'*50
+        msg.actions.append(of.ofp_action_output(port=of.OFPP_ALL))
+        connection.send(msg)
+
+    def _request_stats(self, connection):
+        """Periodically request flow statistics from switches"""
+        r = of.ofp_stats_request(body=of.ofp_flow_stats_request())
+        connection.send(r)
+        core.callDelayed(5, self._request_stats, connection)
+
+    def _handle_FlowStatsReceived(self, event):
+        """Handle received flow statistics"""
+        dpid = event.connection.dpid
+        self.flow_stats.setdefault(dpid, {})
+        
+        for stat in event.stats:
+            key = (stat.match.nw_src, stat.match.nw_dst)
+            self.flow_stats[dpid][key] = (stat.byte_count, time.time())
 
     def _handle_PacketIn(self, event):
         packet = event.parsed
@@ -37,8 +74,8 @@ class AdaptiveRouting(object):
         in_port = event.port
 
         # Learn host location
-        if packet.src not in self.mac_to_port.get((dpid, packet.src), (None,))[0]:
-            self.mac_to_port[(dpid, packet.src)] = in_port
+        if packet.src not in self.mac_to_port[dpid]:
+            self.mac_to_port[dpid][packet.src] = in_port
             if packet.type == packet.IP_TYPE:
                 ip_packet = packet.payload
                 self.hosts[ip_packet.srcip] = (dpid, packet.src)
@@ -55,32 +92,31 @@ class AdaptiveRouting(object):
             src_ip = ip_packet.srcip
             dst_ip = ip_packet.dstip
 
-            # Learn topology (simple link discovery)
-            if packet.src.isBridge() and packet.dst.isBridge():
-                if (dpid, event.connection.otherDPID) not in self.link_delays:
-                    self.link_delays[(dpid, event.connection.otherDPID)] = 10  # default 10ms
-                    self.topology[dpid][event.connection.otherDPID] = in_port
-                    self.graph.add_edge(dpid, event.connection.otherDPID, 
-                                      weight=self.link_delays[(dpid, event.connection.otherDPID)])
-                    log.info("Discovered link %s <-> %s", 
-                            dpidToStr(dpid), dpidToStr(event.connection.otherDPID))
+            # Flood if destination unknown
+            if dst_ip not in self.hosts:
+                self._flood_packet(event)
+                return
 
-            # Adaptive routing for known hosts
-            if dst_ip in self.hosts:
-                dst_dpid, dst_mac = self.hosts[dst_ip]
+            dst_dpid, dst_mac = self.hosts[dst_ip]
+            if dpid == dst_dpid:
+                # Destination is on same switch
+                out_port = self.mac_to_port[dpid].get(dst_mac)
+                if out_port:
+                    self._send_packet(dpid, out_port, packet)
+                else:
+                    self._flood_packet(event)
+            else:
+                # Find path to destination
                 path = self._calculate_best_path(dpid, dst_dpid)
-                
                 if path:
                     log.debug("Installing path from %s to %s: %s", 
                              dpidToStr(dpid), dpidToStr(dst_dpid), 
                              " -> ".join(dpidToStr(p) for p in path))
-                    self._install_path_flows(path, src_ip, dst_ip, dst_mac)
+                    self._install_path_flows(path, packet.src, dst_mac, src_ip, dst_ip)
                 else:
                     log.warning("No path found from %s to %s", 
                                dpidToStr(dpid), dpidToStr(dst_dpid))
                     self._flood_packet(event)
-            else:
-                self._flood_packet(event)
         else:
             self._flood_packet(event)
 
@@ -100,41 +136,50 @@ class AdaptiveRouting(object):
                                   protodst=arp.protosrc)
                 self._send_packet(dpid, event.port, r)
                 log.debug("Sent ARP reply %s -> %s", arp.protodst, arp.protosrc)
+            else:
+                self._flood_packet(event)
 
     def _calculate_best_path(self, src_dpid, dst_dpid):
+        """Calculate best path based on current link delays"""
         try:
             return nx.shortest_path(self.graph, source=src_dpid, target=dst_dpid, 
                                   weight='weight')
         except nx.NetworkXNoPath:
             return None
 
-    def _install_path_flows(self, path, src_ip, dst_ip, dst_mac):
-        for i in range(len(path)-1):
+    def _install_path_flows(self, path, src_mac, dst_mac, src_ip, dst_ip):
+        """Install flow entries along the calculated path"""
+        for i in range(len(path)):
             current = path[i]
-            next_hop = path[i+1]
-            out_port = self.topology[current].get(next_hop)
+            
+            if i < len(path)-1:
+                next_hop = path[i+1]
+                out_port = self.topology[current][next_hop]
+            else:
+                out_port = self.mac_to_port[current].get(dst_mac)
+                if not out_port:
+                    continue
 
-            if out_port is None:
-                continue
-
-            # Forward flow
+            # Install forward flow
             fm = of.ofp_flow_mod()
-            fm.match = of.ofp_match(dl_type=0x800, 
-                                  nw_src=src_ip, 
-                                  nw_dst=dst_ip)
+            fm.match = of.ofp_match(dl_type=0x800, nw_src=src_ip, nw_dst=dst_ip)
             fm.actions.append(of.ofp_action_dl_addr.set_dst(dst_mac))
             fm.actions.append(of.ofp_action_output(port=out_port))
             core.openflow.sendToDPID(current, fm)
 
-            # Reverse flow
+            # Install reverse flow
             fm = of.ofp_flow_mod()
-            fm.match = of.ofp_match(dl_type=0x800, 
-                                  nw_src=dst_ip, 
-                                  nw_dst=src_ip)
-            fm.actions.append(of.ofp_action_output(port=self.mac_to_port[(current, dst_mac)]))
-            core.openflow.sendToDPID(next_hop, fm)
+            fm.match = of.ofp_match(dl_type=0x800, nw_src=dst_ip, nw_dst=src_ip)
+            fm.actions.append(of.ofp_action_dl_addr.set_dst(src_mac))
+            if i > 0:
+                prev_hop = path[i-1]
+                fm.actions.append(of.ofp_action_output(port=self.topology[current][prev_hop]))
+            else:
+                fm.actions.append(of.ofp_action_output(port=self.mac_to_port[current][src_mac]))
+            core.openflow.sendToDPID(current, fm)
 
     def _flood_packet(self, event):
+        """Flood packet to all ports except input port"""
         msg = of.ofp_packet_out()
         msg.data = event.ofp
         msg.actions.append(of.ofp_action_output(port=of.OFPP_ALL))
@@ -142,12 +187,14 @@ class AdaptiveRouting(object):
         event.connection.send(msg)
 
     def _send_packet(self, dpid, port, packet):
+        """Send packet out of specific port"""
         msg = of.ofp_packet_out()
         msg.data = packet.pack()
         msg.actions.append(of.ofp_action_output(port=port))
         core.openflow.sendToDPID(dpid, msg)
 
 def launch():
+    """Start the Adaptive Routing component"""
     core.registerNew(AdaptiveRouting)
 ```
 
