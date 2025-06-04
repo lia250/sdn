@@ -114,3 +114,59 @@ sudo ip link del s1-eth2 2>/dev/null
 sudo ip link del s2-eth1 2>/dev/null
 sudo ip link del s2-eth2 2>/dev/null
 ```
+
+5. اگر می‌خواهید کنترلر یادگیری MAC داشته باشد:
+
+pox/pox/forwarding/learning_switch.py
+
+```python
+from pox.core import core
+import pox.openflow.libopenflow_01 as of
+from pox.lib.util import dpidToStr
+
+log = core.getLogger()
+
+class LearningSwitch(object):
+    def __init__(self):
+        core.openflow.addListeners(self)
+        self.mac_to_port = {}  # {(dpid, mac): port}
+
+    def _handle_ConnectionUp(self, event):
+        log.info("Switch %s connected", dpidToStr(event.dpid))
+
+    def _handle_PacketIn(self, event):
+        packet = event.parsed
+        dpid = event.dpid
+        inport = event.port
+        
+        # Learn MAC address
+        self.mac_to_port[(dpid, packet.src)] = inport
+        
+        if (dpid, packet.dst) in self.mac_to_port:
+            # Destination known - install flow and forward
+            outport = self.mac_to_port[(dpid, packet.dst)]
+            self._install_flow(dpid, packet.src, packet.dst, inport, outport, event.connection)
+            self._send_packet(event, outport)
+        else:
+            # Destination unknown - flood
+            self._send_packet(event, of.OFPP_FLOOD)
+    
+    def _install_flow(self, dpid, src, dst, inport, outport, connection):
+        msg = of.ofp_flow_mod()
+        msg.match.dl_src = src
+        msg.match.dl_dst = dst
+        msg.actions.append(of.ofp_action_output(port=outport))
+        connection.send(msg)
+        log.info("Installed flow on %s: %s -> %s out port %s",
+                dpidToStr(dpid), src, dst, outport)
+    
+    def _send_packet(self, event, outport):
+        msg = of.ofp_packet_out()
+        msg.data = event.ofp
+        msg.actions.append(of.ofp_action_output(port=outport))
+        msg.in_port = event.port
+        event.connection.send(msg)
+
+def launch():
+    core.registerNew(LearningSwitch)
+```
