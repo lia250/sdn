@@ -172,5 +172,5 @@ def launch():
 ```
 
 ```
-./pox.py log.level --DEBUG learning_switch
+./pox.py log.level --DEBUG forwarding.learning_switch
 ```
