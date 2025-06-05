@@ -98,12 +98,6 @@ if __name__ == '__main__':
 # 3. run controller pox
 
 ```
-python3 pox.py openflow.of_01 --port=6633 forwarding.simple_controller
-```
-
-or 
-
-```
 ./pox.py log.level --DEBUG  forwarding.simple_controller
 ```
 
