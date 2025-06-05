@@ -84,7 +84,7 @@ if __name__ == '__main__':
 # 3. run controller pox
 
 ```
-python3 pox.py openflow.of_01 --port=6634 forwarding.simple_controller
+python3 pox.py openflow.of_01 --port=6633 forwarding.simple_controller
 ```
 
 or 
