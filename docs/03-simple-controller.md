@@ -8,6 +8,11 @@ source pox-env/bin/activate
 cd pox
 ```
 
+```
+sudo lsof -i :6633
+sudo kill -9 <PID>
+```
+
 pox/pox/forwarding/simple_controller.py
 
 ```python
