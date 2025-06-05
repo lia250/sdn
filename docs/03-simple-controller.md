@@ -13,7 +13,7 @@ sudo lsof -i :6633
 sudo kill -9 <PID>
 ```
 
-pox/pox/forwarding/simple_controller.py
+pox/pox/forwarding/flooding_controller.py
 
 ```python
 from pox.core import core
@@ -56,7 +56,7 @@ def launch():
 ```
 
 ```
-./pox.py log.level --DEBUG  forwarding.simple_controller
+./pox.py log.level --DEBUG  forwarding.flooding_controller
 ```
 
 # 2. simple_topology.py
