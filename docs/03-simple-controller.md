@@ -13,7 +13,11 @@ sudo lsof -i :6633
 sudo kill -9 <PID>
 ```
 
-pox/pox/forwarding/flooding_controller.py
+
+
+```
+nano ~/pox/pox/forwarding/flooding_controller.py
+```
 
 ```python
 from pox.core import core
