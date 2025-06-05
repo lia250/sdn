@@ -4,6 +4,10 @@
 source pox-env/bin/activate
 ```
 
+```
+cd pox
+```
+
 pox/pox/forwarding/simple_controller.py
 
 ```python
