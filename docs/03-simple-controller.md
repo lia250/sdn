@@ -101,20 +101,10 @@ sudo python3 simple_topology.py
 
 قبل از اجرای مجدد اسکریپت، این دستورات را اجرا کنید:
 ```
-sudo mn -c  # تمیز کردن توپولوژی‌های قبلی Mininet
-sudo pkill -9 python3  # پایان دادن به تمام فرآیندهای پایتون
-sudo pkill -9 pox  # پایان دادن به فرآیندهای POX
+sudo mn -c  # Cleaning up previous Mininet topologies
+
 ```
 
-حذف دستی اینترفیس‌های باقیمانده:
-```
-sudo ip link del s1-eth3 2>/dev/null
-sudo ip link del s2-eth3 2>/dev/null
-sudo ip link del s1-eth1 2>/dev/null
-sudo ip link del s1-eth2 2>/dev/null
-sudo ip link del s2-eth1 2>/dev/null
-sudo ip link del s2-eth2 2>/dev/null
-```
 
 5. اگر می‌خواهید کنترلر یادگیری MAC داشته باشد:
 
