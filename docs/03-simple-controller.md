@@ -55,13 +55,11 @@ def launch():
     core.registerNew(SimpleController)
 ```
 
-# 2. run controller pox
-
 ```
 ./pox.py log.level --DEBUG  forwarding.simple_controller
 ```
 
-# 3. simple_topology.py
+# 2. simple_topology.py
 
 ```python
 from mininet.net import Mininet
@@ -102,18 +100,15 @@ if __name__ == '__main__':
 ```
 
 
-
-# 4. 
+قبل از اجرای مجدد اسکریپت، این دستورات را اجرا کنید:
+```
+sudo mn -c  # Cleaning up previous Mininet topologies
+```
 
 ```
 sudo python3 simple_topology.py
 ```
 
-قبل از اجرای مجدد اسکریپت، این دستورات را اجرا کنید:
-```
-sudo mn -c  # Cleaning up previous Mininet topologies
-
-```
 
 
 5. اگر می‌خواهید کنترلر یادگیری MAC داشته باشد:
