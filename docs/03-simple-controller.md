@@ -55,7 +55,13 @@ def launch():
     core.registerNew(SimpleController)
 ```
 
-# 2. simple_topology.py
+# 2. run controller pox
+
+```
+./pox.py log.level --DEBUG  forwarding.simple_controller
+```
+
+# 3. simple_topology.py
 
 ```python
 from mininet.net import Mininet
@@ -95,11 +101,7 @@ if __name__ == '__main__':
     simpleTopo()
 ```
 
-# 3. run controller pox
 
-```
-./pox.py log.level --DEBUG  forwarding.simple_controller
-```
 
 # 4. 
 
