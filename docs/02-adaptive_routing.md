@@ -5,9 +5,9 @@ pox/pox/forwrading/adaptive_routing.py
 ```python
 # -*- coding: utf-8 -*-
 """
-AdaptiveRouting – POX SDN Controller
- * Topology discovery: openflow.discovery
- * Shortest-path routing with NetworkX
+AdaptiveRouting – POX SDN Controller (سازگار با POX 0.7.0 gar)
+  * کشف توپولوژی:  openflow.discovery
+  * کوتاه‌ترین مسیر:  NetworkX
 """
 from pox.core import core
 import pox.openflow.libopenflow_01 as of
@@ -16,13 +16,14 @@ import networkx as nx
 
 log = core.getLogger()
 
-class AdaptiveRouting(object):
+
+class AdaptiveRouting (object):
     def __init__(self):
         core.openflow.addListeners(self)
 
-        # make sure discovery events arrive
-        import pox.openflow.discovery   # ← بارگیری درونی
-        pox.openflow.discovery.launch() # ← فعال‌سازی
+        # Discovery را درون کد فعال می‌کنیم تا نیاز به آرگومان اضافی نباشد
+        import pox.openflow.discovery
+        pox.openflow.discovery.launch()
         core.openflow_discovery.addListeners(self)
 
         self.topology    = {}   # {dpid: {nbr_dpid: out_port}}
@@ -30,16 +31,16 @@ class AdaptiveRouting(object):
         self.hosts       = {}   # {IPAddr: (dpid, mac)}
         self.graph       = nx.Graph()
 
-    # ───────────── Switch connect ─────────────
+    # ───────── Switch connect ─────────
     def _handle_ConnectionUp(self, ev):
         dpid = ev.dpid
         log.info("🔌 Switch %s connected", dpidToStr(dpid))
         self.topology[dpid]    = {}
         self.mac_to_port[dpid] = {}
 
-    # ───────────── Link events (LLDP) ─────────────
+    # ───────── Link events (LLDP) ─────────
     def _handle_LinkEvent(self, ev):
-        l = ev.link            # (dpid1,port1) ↔ (dpid2,port2)
+        l = ev.link                # (dpid1,port1) ↔ (dpid2,port2)
         s1,p1,s2,p2 = l.dpid1, l.port1, l.dpid2, l.port2
 
         if ev.added:
@@ -55,33 +56,35 @@ class AdaptiveRouting(object):
                 self.graph.remove_edge(s1, s2)
             log.info("➖ %s:%d ↔ %s:%d", dpidToStr(s1),p1, dpidToStr(s2),p2)
 
-    # ───────────── Packet-In ─────────────
+    # ───────── Packet-In ─────────
     def _handle_PacketIn(self, ev):
         pkt, dpid, in_p = ev.parsed, ev.dpid, ev.port
 
-        # 1) learn MAC
+        # learn MAC
         self.mac_to_port.setdefault(dpid, {}).setdefault(pkt.src, in_p)
 
-        # 2) learn host on IP
+        # learn host on IP
         if pkt.type == pkt.IP_TYPE:
             self.hosts[pkt.payload.srcip] = (dpid, pkt.src)
 
-        # 3) ARP handling
+        # ARP processing
         if pkt.type == pkt.ARP_TYPE:
             self._handle_ARP(ev)
             return
 
-        # 4) IPv4 forwarding
+        # IPv4 routing
         if pkt.type == pkt.IP_TYPE:
-            ip = pkt.payload; dst_ip = ip.dstip
+            ip = pkt.payload
+            dst_ip = ip.dstip
+
             if dst_ip not in self.hosts:
                 self._flood(ev); return
 
             dst_dpid, dst_mac = self.hosts[dst_ip]
 
-            if dpid == dst_dpid:                 # same switch
+            if dpid == dst_dpid:                       # same switch
                 out = self.mac_to_port[dpid].get(dst_mac)
-                self._unicast(dpid,out,pkt) if out else self._flood(ev)
+                self._unicast(dpid, out, pkt) if out else self._flood(ev)
             else:
                 path = self._shortest(dpid, dst_dpid)
                 if path:
@@ -95,60 +98,59 @@ class AdaptiveRouting(object):
         else:
             self._flood(ev)
 
-    # ───────────── ARP helper ─────────────
+    # ───────── ARP helper ─────────
     def _handle_ARP(self, ev):
         pkt, arp, dpid = ev.parsed, ev.parsed.payload, ev.dpid
 
         if arp.opcode == arp.REQUEST:
-            if arp.protodst in self.hosts:       # می‌توانیم جواب دهیم
-                _, dst_mac = self.hosts[arp.protodst]
-                reply = arp.make_reply(hwsrc=dst_mac, hwdst=pkt.src,
-                                       protosrc=arp.protodst, protodst=arp.protosrc)
-                self._unicast(dpid, ev.port, reply)
-            else:
-                self._flood(ev)                  # مقصد ناشناخته → flood
+            # مقصد را نمی‌شناسیم → Flood
+            self._flood(ev)
 
-        elif arp.opcode == arp.REPLY:            # یادگیری از REPLY
+        elif arp.opcode == arp.REPLY:
+            # learn from reply
             self.hosts[arp.protosrc] = (dpid, pkt.src)
-            # forward to original requester if در جدول است
-            dst_port = self.mac_to_port[dpid].get(arp.hwdst)
-            if dst_port: self._unicast(dpid, dst_port, pkt)
+            # forward to requester if seen
+            out = self.mac_to_port[dpid].get(arp.hwdst)
+            self._unicast(dpid, out, pkt) if out else self._flood(ev)
 
-    # ───────────── Path utilities ─────────────
-    def _shortest(self, src, dst):
-        try:    return nx.shortest_path(self.graph, src, dst)
+    # ───────── Path utilities ─────────
+    def _shortest(self, s, d):
+        try:    return nx.shortest_path(self.graph, s, d)
         except: return None
 
     def _install_path(self, path, src_mac, dst_mac, src_ip, dst_ip):
         for i, sw in enumerate(path):
-            if i < len(path)-1: next_sw = path[i+1]; out = self.topology[sw][next_sw]
-            else:               out = self.mac_to_port[sw][dst_mac]
+            if i < len(path)-1:   next_sw = path[i+1]; out = self.topology[sw][next_sw]
+            else:                 out = self.mac_to_port[sw][dst_mac]
 
+            # forward flow
             fm = of.ofp_flow_mod()
             fm.match = of.ofp_match(dl_type=0x0800, nw_src=src_ip, nw_dst=dst_ip)
             fm.actions.append(of.ofp_action_output(port=out))
             core.openflow.sendToDPID(sw, fm)
 
-            fm_rev = of.ofp_flow_mod()
-            fm_rev.match = of.ofp_match(dl_type=0x0800, nw_src=dst_ip, nw_dst=src_ip)
-            if i:  out_b = self.topology[sw][path[i-1]]
-            else:  out_b = self.mac_to_port[sw][src_mac]
-            fm_rev.actions.append(of.ofp_action_output(port=out_b))
-            core.openflow.sendToDPID(sw, fm_rev)
+            # reverse flow
+            fm_b = of.ofp_flow_mod()
+            fm_b.match = of.ofp_match(dl_type=0x0800, nw_src=dst_ip, nw_dst=src_ip)
+            out_b = self.topology[sw][path[i-1]] if i else self.mac_to_port[sw][src_mac]
+            fm_b.actions.append(of.ofp_action_output(port=out_b))
+            core.openflow.sendToDPID(sw, fm_b)
 
-    # ───────────── I/O helpers ─────────────
+    # ───────── I/O helpers ─────────
     def _flood(self, ev):
-        ev.connection.send(of.ofp_packet_out(data=ev.ofp, in_port=ev.port,
-                          actions=[of.ofp_action_output(port=of.OFPP_FLOOD)]))
+        ev.connection.send(of.ofp_packet_out(
+            data=ev.ofp, in_port=ev.port,
+            actions=[of.ofp_action_output(port=of.OFPP_FLOOD)]))
 
     def _unicast(self, dpid, port, pkt):
-        core.openflow.sendToDPID(dpid,
-            of.ofp_packet_out(data=pkt.pack(),
-                              actions=[of.ofp_action_output(port=port)]))
+        if port is None: return self._flood(pkt)   # fallback
+        core.openflow.sendToDPID(dpid, of.ofp_packet_out(
+            data=pkt.pack(), actions=[of.ofp_action_output(port=port)]))
 
-# ───────────── Launcher ─────────────
+# ───────── Launcher ─────────
 def launch():
     core.registerNew(AdaptiveRouting)
+
 
 ```
 
@@ -194,8 +196,3 @@ topos = {'adaptive': (lambda: AdaptiveTopo())}
 sudo mn --custom adaptive_routing_topology.py --controller=remote,ip=127.0.0.1 --topo=adaptive
 ```
 
-or 
-
-```
-sudo mn --custom adaptive_routing_topology.py
-```
