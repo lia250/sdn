@@ -113,9 +113,14 @@ sudo mn -c  # Cleaning up previous Mininet topologies
 sudo python3 simple_topology.py
 ```
 
+```
+pingall
+h1 ping h2
+dpctl dump-flows
+```
 
 
-5. اگر می‌خواهید کنترلر یادگیری MAC داشته باشد:
+ اگر می‌خواهید کنترلر یادگیری MAC داشته باشد:
 
 pox/pox/forwarding/learning_switch.py
 
@@ -173,4 +178,10 @@ def launch():
 
 ```
 ./pox.py log.level --DEBUG forwarding.learning_switch
+```
+
+```
+pingall
+h1 ping h2
+dpctl dump-flows
 ```
