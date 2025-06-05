@@ -194,12 +194,6 @@ topos = {'adaptive': (lambda: AdaptiveTopo())}
 # 4. run mininet 
 
 ```
-sudo mn --custom adaptive_routing_topology.py --controller=remote,ip=127.0.0.1 --topo=adaptive
-```
-
-or 
-
-```
 sudo mn --custom adaptive_routing_topology.py --controller=remote,ip=127.0.0.1,port=6633 --topo=adaptive
 ```
 
