@@ -117,6 +117,7 @@ sudo python3 simple_topology.py
 pingall
 h1 ping h2
 dpctl dump-flows
+sh ovs-ofctl show s1
 ```
 
 
@@ -184,4 +185,5 @@ def launch():
 pingall
 h1 ping h2
 dpctl dump-flows
+sh ovs-ofctl show s1
 ```
