@@ -42,3 +42,9 @@ ClientAliveCountMax 3
 ```
 sudo systemctl restart sshd
 ```
+
+or 
+
+```
+sudo service ssh restart
+```
