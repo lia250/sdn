@@ -17,3 +17,13 @@ python3.9 --version
 python3.9 -m venv pox-env
 source pox-env/bin/activate
 ```
+
+3.
+
+```
+sudo apt install mininet git
+```
+
+```
+git clone https://github.com/noxrepo/pox.git
+```
