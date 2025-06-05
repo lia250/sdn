@@ -1,4 +1,4 @@
-# install python 3.9 for pox
+# 1. install python 3.9 for pox
 
 1. 
 
@@ -26,4 +26,19 @@ sudo apt install mininet git
 
 ```
 git clone https://github.com/noxrepo/pox.git
+```
+
+# 2. ssh
+
+```
+sudo nano /etc/ssh/sshd_config
+```
+
+```
+ClientAliveInterval 60      
+ClientAliveCountMax 3       
+```
+
+```
+sudo systemctl restart sshd
 ```
