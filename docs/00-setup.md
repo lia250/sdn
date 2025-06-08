@@ -18,17 +18,19 @@ python3.9 -m venv pox-env
 source pox-env/bin/activate
 ```
 
-3.
+# 2. install mininet
 
 ```
 sudo apt install mininet git
 ```
 
+# 3. install pox
+
 ```
 git clone https://github.com/noxrepo/pox.git
 ```
 
-# 2. ssh (Enable SSH keepalive to prevent automatic disconnection during idle sessions)
+# 4. ssh (Enable SSH keepalive to prevent automatic disconnection during idle sessions)
 
 ```
 sudo nano /etc/ssh/sshd_config
