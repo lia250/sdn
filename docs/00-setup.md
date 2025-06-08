@@ -28,7 +28,7 @@ sudo apt install mininet git
 git clone https://github.com/noxrepo/pox.git
 ```
 
-# 2. ssh
+# 2. ssh (Enable SSH keepalive to prevent automatic disconnection during idle sessions)
 
 ```
 sudo nano /etc/ssh/sshd_config
