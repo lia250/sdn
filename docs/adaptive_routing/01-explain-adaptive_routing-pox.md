@@ -91,6 +91,97 @@ class AdaptiveRouting (object):
             self._flood(ev)
 ```
 
+<p dir="rtl" align="justify">توضیحات کد:</p>
+
+```python
+def _handle_PacketIn(self, ev):
+```
+
+<p dir="rtl" align="justify">
+  <ul dir="rtl">
+    <li>تابعی که هنگام دریافت بسته از سوئیچ فراخوانی می‌شود</li>
+	<li>ev شامل اطلاعات رویداد دریافتی است</li>
+  </ul>
+</p>
+
+```python
+    pkt, dpid, in_p = ev.parsed, ev.dpid, ev.port
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>تجزیه بسته دریافتی به سه بخش:
+		<ul dir="rtl">
+		  <li>pkt: بسته پارس شده</li>
+		  <li>dpid: شناسه سوئیچ فرستنده</li>
+		  <li>in_p: پورت ورودی که بسته از آن دریافت شده</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+    # learn MAC
+    self.mac_to_port.setdefault(dpid, {}).setdefault(pkt.src, in_p)
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>یادگیری مکان MAC آدرس مبدأ:
+		<ul dir="rtl">
+		  <li>.ایجاد ساختار داده برای سوئیچ اگر وجود نداشته باشد</li>
+		  <li>ثبت پورت ورودی برای MAC آدرس مبدأ</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+    # learn host on IP
+    if pkt.type == pkt.IP_TYPE:
+        self.hosts[pkt.payload.srcip] = (dpid, pkt.src)
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>اگر بسته از نوع IP باشد:
+		<ul dir="rtl">
+		  <li>ثبت مکان میزبان (IP به سوئیچ و MAC نگاشت می‌شود)</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+    # ARP processing
+    if pkt.type == pkt.ARP_TYPE:
+        self._handle_ARP(ev)
+        return
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>اگر بسته از نوع ARP باشد:
+		<ul dir="rtl">
+		  <li>پردازش را به تابع مخصوص ARP واگذار می‌کند</li>
+		  <li>از تابع خارج می‌شود</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+    # IPv4 routing
+    if pkt.type == pkt.IP_TYPE:
+```
+
+<p dir="rtl" align="justify">
+  <ul dir="rtl">
+    <li>اگر بسته از نوع IP باشد (غیر از ARP):</li>
+  </ul>
+</p>
+
+
 # <p dir="rtl" align="justify">بخش 5: پردازش ARP</p>
 
 ```python
