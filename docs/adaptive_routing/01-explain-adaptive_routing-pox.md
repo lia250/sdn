@@ -299,8 +299,6 @@ def _handle_PacketIn(self, ev):
 	  <li>اگر بسته از نوع IP نباشد (مثلاً IPv6 یا سایر پروتکل‌ها):
 		<ul dir="rtl">
 		  <li>بسته را flood می‌کند</li>
-		  <li></li>
-		  <li></li>
 		</ul>
 	  </li>
 	</ul>
