@@ -1129,3 +1129,72 @@ fm_b.match = of.ofp_match(dl_type=0x0800, nw_src=dst_ip, nw_dst=src_ip)
 def launch():
     core.registerNew(AdaptiveRouting)
 ```
+
+<p dir="rtl" align="justify">توضیحات کد:</p>
+
+```python
+def launch():
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>تابع راه‌اندازی اصلی کنترلر:
+		<ul dir="rtl">
+		  <li>تابع استاندارد POX که هنگام اجرای کامپوننت فراخوانی می‌شود</li>
+		  <li>نقطه ورود اصلی برای فعال‌سازی ماژول کنترلر</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+    core.registerNew(AdaptiveRouting)
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>ثبت کامپوننت کنترلر:
+		<ul dir="rtl">
+		  <li>core.registerNew(): متد اصلی POX برای ثبت کامپوننت‌های جدید</li>
+		  <li>AdaptiveRouting: کلاس اصلی کنترلر که به عنوان پارامتر داده می‌شود</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+## <p dir="rtl" align="justify">نکات کلیدی عملکرد:</p>
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>1. الزامات POX:
+		<ul dir="rtl">
+		  <li>هر ماژول POX باید تابع launch() داشته باشد</li>
+		  <li>این تابع توسط هسته اصلی POX هنگام بارگذاری ماژول فراخوانی می‌شود</li>
+		</ul>
+	  </li>
+	  	<li>2. مکانیزم ثبت:
+		<ul dir="rtl">
+		  <li>registerNew یک نمونه جدید از کلاس AdaptiveRouting ایجاد می‌کند</li>
+		  <li>این نمونه به سیستم event-driven POX متصل می‌شود</li>
+		</ul>
+	  </li>
+	  	<li>3. زمانبندی اجرا:
+		<ul dir="rtl">
+		  <li>این تابع فقط یکبار هنگام راه‌اندازی کنترلر اجرا می‌شود</li>
+		  <li>مسئولیت اصلی آن تنظیم اولیه و فعال‌سازی کنترلر است</li>
+		</ul>
+	  </li>
+	  	<li>4. سادگی طراحی:
+		<ul dir="rtl">
+		  <li>با وجود سادگی، این تابع نقش حیاتی در معماری POX دارد</li>
+		  <li>تمام initializationهای پیچیده در constructor کلاس AdaptiveRouting انجام می‌شود</li>
+		</ul>
+	  </li>
+	  	<li>5. تک نقطه ورود:
+		<ul dir="rtl">
+		  <li>این تابع به عنوان تنها نقطه ورود خارجی برای ماژول عمل می‌کند</li>
+		  <li>تمام Dependencyها و تنظیمات اولیه به صورت کپسوله شده در کلاس اصلی مدیریت می‌شوند</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
