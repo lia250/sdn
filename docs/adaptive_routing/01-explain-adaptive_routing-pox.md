@@ -173,14 +173,138 @@ def _handle_PacketIn(self, ev):
 ```python
     # IPv4 routing
     if pkt.type == pkt.IP_TYPE:
+        ip = pkt.payload
+        dst_ip = ip.dstip
 ```
 
 <p dir="rtl" align="justify">
-  <ul dir="rtl">
-    <li>اگر بسته از نوع IP باشد (غیر از ARP):</li>
-  </ul>
+	<ul dir="rtl">
+	  <li>اگر بسته از نوع IP باشد (غیر از ARP):
+		<ul dir="rtl">
+		  <li>اطلاعات لایه IP را استخراج می‌کند</li>
+		  <li>آدرس IP مقصد را می‌خواند</li>
+		</ul>
+	  </li>
+	</ul>
 </p>
 
+```python
+        if dst_ip not in self.hosts:
+            self._flood(ev); return
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>اگر مقصد در لیست میزبان‌های شناخته شده نباشد:
+		<ul dir="rtl">
+		  <li>بسته را flood می‌کند</li>
+		  <li>از تابع خارج می‌شود</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+        dst_dpid, dst_mac = self.hosts[dst_ip]
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>اطلاعات مقصد را از ساختار داده hosts می‌خواند:
+		<ul dir="rtl">
+		  <li>شناسه سوئیچ مقصد</li>
+		  <li>MAC آدرس مقصد</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+        if dpid == dst_dpid:                       # same switch
+            out = self.mac_to_port[dpid].get(dst_mac)
+            self._unicast(dpid, out, pkt) if out else self._flood(ev)
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>اگر مبدأ و مقصد روی یک سوئیچ باشند:
+		<ul dir="rtl">
+		  <li>پورت خروجی به مقصد را پیدا می‌کند</li>
+		  <li>اگر پورت وجود داشت بسته را unicast می‌کند</li>
+		  <li>در غیر این صورت flood می‌کند</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+        else:
+            path = self._shortest(dpid, dst_dpid)
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>اگر مبدأ و مقصد روی سوئیچ‌های مختلف باشند:
+		<ul dir="rtl">
+		  <li>کوتاه‌ترین مسیر بین سوئیچ‌ها را محاسبه می‌کند</li>
+		  <li></li>
+		  <li></li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+            if path:
+                log.debug("🛣 %s → %s : %s",
+                          dpidToStr(dpid), dpidToStr(dst_dpid),
+                          " → ".join(dpidToStr(sw) for sw in path))
+                self._install_path(path, pkt.src, dst_mac,
+                                   ip.srcip, dst_ip)
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>اگر مسیری یافت شد:
+		<ul dir="rtl">
+		  <li>مسیر را در لاگ ثبت می‌کند</li>
+		  <li>قوانین جریان را در مسیر یافت شده نصب می‌کند</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```
+            else:
+                self._flood(ev)
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>اگر مسیری یافت نشد:
+		<ul dir="rtl">
+		  <li>بسته را flood می‌کند</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+    else:
+        self._flood(ev)
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>اگر بسته از نوع IP نباشد (مثلاً IPv6 یا سایر پروتکل‌ها):
+		<ul dir="rtl">
+		  <li>بسته را flood می‌کند</li>
+		  <li></li>
+		  <li></li>
+		</ul>
+	  </li>
+	</ul>
+</p>
 
 # <p dir="rtl" align="justify">بخش 5: پردازش ARP</p>
 
