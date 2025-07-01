@@ -512,6 +512,137 @@ def _handle_PacketIn(self, ev):
             self._unicast(dpid, out, pkt) if out else self._flood(ev)
 ```
 
+<p dir="rtl" align="justify">توضیحات کد:</p>
+
+```python
+    def _handle_ARP(self, ev):
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>تابع پردازش بسته‌های ARP:
+		<ul dir="rtl">
+		  <li>متد اختصاصی برای مدیریت ترافیک ARP</li>
+		  <li>ev پارامتر رویداد دریافتی از سوئیچ</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+        pkt, arp, dpid = ev.parsed, ev.parsed.payload, ev.dpid
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>تفکیک اطلاعات بسته:
+		<ul dir="rtl">
+		  <li>pkt: بسته شبکه پارس شده (لایه 2)</li>
+		  <li>arp: payload بسته که حاوی اطلاعات ARP است</li>
+		  <li>dpid: شناسه سوئیچ فرستنده بسته</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+        if arp.opcode == arp.REQUEST:
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>بررسی نوع درخواست ARP:
+		<ul dir="rtl">
+		  <li>اگر بسته یک درخواست ARP (ARP Request) باشد</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+            self._flood(ev)
+```
+
+<p dir="rtl" align="justify">
+  <ul dir="rtl">
+    <li>فراخوانی تابع _flood برای ارسال بسته به همه پورت‌ها (به جز پورت ورودی)</li>
+  </ul>
+</p>
+
+```python
+        elif arp.opcode == arp.REPLY:
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>بررسی نوع پاسخ ARP:
+		<ul dir="rtl">
+		  <li>اگر بسته یک پاسخ ARP (ARP Reply) باشد</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+            # learn from reply
+            self.hosts[arp.protosrc] = (dpid, pkt.src)
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>یادگیری اطلاعات میزبان:
+		<ul dir="rtl">
+		  <li>کامنت نشان می‌دهد که اطلاعات از پاسخ ARP یادگرفته می‌شود</li>
+		  <li>ثبت mapping آدرس IP مبدأ (protosrc) به:
+			<ul>
+				<li>شناسه سوئیچ (dpid)</li>
+				<li>MAC آدرس مبدأ (pkt.src)</li>
+			</ul>
+		  </li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+            # forward to requester if seen
+            out = self.mac_to_port[dpid].get(arp.hwdst)
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>یافتن پورت مقصد:
+		<ul dir="rtl">
+		  <li>کامنت نشان می‌دهد که اگر درخواست‌کننده دیده شده باشد، پاسخ به او ارسال می‌شود</li>
+		  <li>جستجوی پورت خروجی برای MAC آدرس مقصد (arp.hwdst) در سوئیچ فعلی</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+            self._unicast(dpid, out, pkt) if out else self._flood(ev)
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>ارسال پاسخ ARP:
+		<ul dir="rtl">
+		  <li>اگر پورت خروجی پیدا شد (out وجود دارد):
+			<ul>
+				<li>ارسال unicast به پورت مشخص شده</li>
+			</ul>
+		  </li>
+		  <li>در غیر این صورت:
+			<ul>
+				<li>flood کردن بسته به همه پورت‌ها</li>
+			</ul>
+		  </li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
 # <p dir="rtl" align="justify">بخش 6: ابزارهای مسیریابی</p>
 
 ```python
