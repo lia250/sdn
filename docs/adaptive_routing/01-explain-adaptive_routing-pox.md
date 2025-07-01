@@ -960,6 +960,169 @@ fm_b.match = of.ofp_match(dl_type=0x0800, nw_src=dst_ip, nw_dst=src_ip)
             data=pkt.pack(), actions=[of.ofp_action_output(port=port)]))
 ```
 
+
+## <p dir="rtl" align="justify"توضیحات کد:</p>
+
+```python
+    def _flood(self, ev):
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>تابع Flood (ارسال به همه پورت‌ها):
+		<ul dir="rtl">
+		  <li>برای زمانی که مسیر مشخصی وجود ندارد</li>
+		  <li>ev: شیء رویداد دریافتی از سوئیچ</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+        ev.connection.send(of.ofp_packet_out(
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>ساخت و ارسال بسته خروجی:
+		<ul dir="rtl">
+		  <li>استفاده از ofp_packet_out برای ساخت بسته OpenFlow</li>
+		  <li>ارسال از طریق اتصال سوئیچ (ev.connection)</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+            data=ev.ofp, in_port=ev.port,
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>تنظیم پارامترهای بسته:
+		<ul dir="rtl">
+		  <li>data: محتوای بسته اصلی (ev.ofp)</li>
+		  <li>in_port: پورت ورودی که بسته از آن دریافت شده</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+            actions=[of.ofp_action_output(port=of.OFPP_FLOOD)]))
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>تعریف اکشن Flood:
+		<ul dir="rtl">
+		  <li>OFPP_FLOOD: ثابت مشخص‌کننده flood کردن بستهd</li>
+		  <li>بسته به همه پورت‌ها (به جز پورت ورودی) ارسال می‌شود</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+    def _unicast(self, dpid, port, pkt):
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>تابع ارسال تک‌پخشی (Unicast):
+		<ul dir="rtl">
+		  <li>برای ارسال بسته به یک پورت خاص</li>
+		  <li>پارامترها:
+			<ul>
+				<li>dpid: شناسه سوئیچ مقصد</li>
+				<li>port: پورت خروجی در سوئیچ</li>
+				<li>pkt: بسته شبکه</li>
+			</ul>
+		  </li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+        if port is None: return self._flood(pkt)   # fallback
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>بررسی fallback به حالت Flood:
+		<ul dir="rtl">
+		  <li>اگر پورت خروجی مشخص نباشد (None)</li>
+		  <li>از تابع _flood به عنوان راهکار جایگزین استفاده می‌کند</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+        core.openflow.sendToDPID(dpid, of.ofp_packet_out(
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>ارسال هدفمند به سوئیچ خاص:
+		<ul dir="rtl">
+		  <li>استفاده از sendToDPID برای ارسال به سوئیچ مشخص</li>
+		  <li>ساخت بسته خروجی OpenFlow</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+            data=pkt.pack(), actions=[of.ofp_action_output(port=port)]))
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>تنظیم پارامترهای بسته:
+		<ul dir="rtl">
+		  <li>data: بسته شبکه بسته‌بندی شده (pkt.pack())</li>
+		  <li>actions: اکشن ارسال به پورت مشخص (port)</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+## <p dir="rtl" align="justify">نکات کلیدی عملکرد:</p>
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>1. تابع _flood:
+		<ul dir="rtl">
+		  <li>برای کشف شبکه و زمانی که اطلاعات مسیریابی وجود ندارد استفاده می‌شود</li>
+		  <li>از مکانیزم استاندارد OpenFlow برای flood کردن استفاده می‌کند</li>
+		  <li>به صورت خودکار از ارسال به پورت ورودی جلوگیری می‌کند (Loop Avoidance)</li>
+		</ul>
+	  </li>
+	  	<li>2. تابع _unicast:
+		<ul dir="rtl">
+		  <li>برای ارسال هدفمند بسته‌ها استفاده می‌شود</li>
+		  <li>دارای مکانیزم fallback به حالت flood هنگام عدم وجود اطلاعات مسیریابی</li>
+		  <li>از pack() برای سریالایز کردن بسته قبل از ارسال استفاده می‌کند</li>
+		</ul>
+	  </li>
+	  	<li>3. تفاوت‌های کلیدی:
+		<ul dir="rtl">
+		  <li>_flood از اتصال موجود سوئیچ (ev.connection) استفاده می‌کند</li>
+		  <li>_unicast از مکانیزم ارسال بر اساس DPID استفاده می‌کند</li>
+		  <li>_flood برای رویدادهای لحظه‌ای، _unicast برای ارسال‌های برنامه‌ریزی شده</li>
+		</ul>
+	  </li>
+	  	<li>4. بهینه‌سازی‌ها:
+		<ul dir="rtl">
+		  <li>کاهش سربار پردازش با استفاده مستقیم از بسته‌های دریافتی</li>
+		  <li>استفاده از مکانیزم‌های استاندارد OpenFlow برای عملکرد بهینه</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
 # <p dir="rtl" align="justify">بخش 8: راه‌اندازی کنترلر</p>
 
 ```python
