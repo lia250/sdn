@@ -672,9 +672,6 @@ def _handle_PacketIn(self, ev):
 	</ul>
 </p>
 
-
-
-
 # <p dir="rtl" align="justify">بخش 6: ابزارهای مسیریابی</p>
 
 ```python
@@ -700,6 +697,229 @@ def _handle_PacketIn(self, ev):
             fm_b.actions.append(of.ofp_action_output(port=out_b))
             core.openflow.sendToDPID(sw, fm_b)
 ```
+
+
+<p dir="rtl" align="justify">توضیحات کد:</p>
+
+```python
+    def _shortest(self, s, d):
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>تابع یافتن کوتاه‌ترین مسیر:
+		<ul dir="rtl">
+		  <li>ورودی: شناسه سوئیچ مبدأ (s) و مقصد (d)</li>
+		  <li>خروجی: لیستی از شناسه سوئیچ‌های مسیر</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+        try:    return nx.shortest_path(self.graph, s, d)
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>محاسبه مسیر با NetworkX:
+		<ul dir="rtl">
+		  <li>استفاده از تابع shortest_path کتابخانه NetworkX</li>
+		  <li>محاسبه کوتاه‌ترین مسیر در گراف توپولوژی (self.graph)</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+        except: return None
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>مدیریت خطا:
+		<ul dir="rtl">
+		  <li>اگر مسیری وجود نداشته باشد (مثلاً سوئیچ‌ها disconnected باشند)</li>
+		  <li>مقدار None برگردانده می‌شود</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+    def _install_path(self, path, src_mac, dst_mac, src_ip, dst_ip):
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>تابع نصب قوانین جریان در مسیر:
+		<ul dir="rtl">
+		  <li>ورودی‌ها:
+			  <ul dir="rtl">
+				<li>path: لیست سوئیچ‌های مسیر</li>
+				<li>src_mac: MAC آدرس مبدأ</li>
+				  <li>dst_mac: MAC آدرس مقصد</li>
+				  <li>src_ip: IP مبدأ</li>
+				  <li>dst_ip: IP مقصد</li>
+			</ul>
+		  </li>		
+		  </li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+        for i, sw in enumerate(path):
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>حلقه روی تمام سوئیچ‌های مسیر:
+		<ul dir="rtl">
+		  <li>i: اندیس سوئیچ در مسیر</li>
+		  <li>sw: شناسه سوئیچ فعلی</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+            if i < len(path)-1:   next_sw = path[i+1]; out = self.topology[sw][next_sw]
+            else:                 out = self.mac_to_port[sw][dst_mac]
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>تعیین پورت خروجی:
+		<ul dir="rtl">
+		  <li>برای سوئیچ‌های میانی: پورت به سوئیچ بعدی در مسیر</li>
+		  <li>برای سوئیچ آخر: پورت به میزبان مقصد (از جدول mac_to_port)</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+            # forward flow
+            fm = of.ofp_flow_mod()
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>ساخت قانون جریان برای جهت رفت:
+		<ul dir="rtl">
+		  <li>ایجاد یک شیء ofp_flow_mod برای تعریف قانون جریان</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+            fm.match = of.ofp_match(dl_type=0x0800, nw_src=src_ip, nw_dst=dst_ip)
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>تعریف تطابق (match):
+		<ul dir="rtl">
+		  <li>dl_type=0x0800: فقط بسته‌های IPv4</li>
+		  <li>nw_src و nw_dst: تطابق با آدرس‌های IP مبدأ و مقصد</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+            fm.actions.append(of.ofp_action_output(port=out))
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>تعریف اکشن:
+		<ul dir="rtl">
+		  <li>ارسال بسته از پورت خروجی محاسبه شده</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+            core.openflow.sendToDPID(sw, fm)
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>ارسال قانون به سوئیچ:
+		<ul dir="rtl">
+		  <li>ارسال قانون جریان به سوئیچ مربوطه</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+            # reverse flow
+            fm_b = of.ofp_flow_mod()
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>ساخت قانون جریان برای جهت برگشت:
+		<ul dir="rtl">
+		  <li>مشابه جهت رفت، اما برای ترافیک معکوس</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+fm_b.match = of.ofp_match(dl_type=0x0800, nw_src=dst_ip, nw_dst=src_ip)
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>تعریف تطابق برای جهت برگشت:
+		<ul dir="rtl">
+		  <li>آدرس‌های مبدأ و مقصد معکوس شده‌اند</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+            out_b = self.topology[sw][path[i-1]] if i else self.mac_to_port[sw][src_mac]
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>تعیین پورت خروجی جهت برگشت:
+		<ul dir="rtl">
+		  <li>برای سوئیچ‌های میانی: پورت به سوئیچ قبلی در مسیر</li>
+		  <li>برای سوئیچ اول: پورت به میزبان مبدأ</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+
+```python
+            fm_b.actions.append(of.ofp_action_output(port=out_b))
+            core.openflow.sendToDPID(sw, fm_b)
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>تعریف و ارسال قانون برگشت:
+		<ul dir="rtl">
+		  <li>مشابه جهت رفت، اما با پارامترهای معکوس</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+## <p dir="rtl" align="justify">نکات کلیدی عملکرد:</p>
+
 
 # <p dir="rtl" align="justify">بخش 7: ابزارهای ارسال بسته</p>
 
