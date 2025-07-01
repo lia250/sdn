@@ -15,6 +15,103 @@ class AdaptiveRouting (object):
         self.graph       = nx.Graph()
 ```
 
+<p dir="rtl" align="justify">توضیحات کد:</p>
+
+```python
+class AdaptiveRouting (object):
+    def __init__(self):
+        core.openflow.addListeners(self)
+```
+
+<p dir="rtl" align="justify">
+  <ul dir="rtl">
+    <li>تعریف کلاس اصلی کنترلر با نام AdaptiveRouting</li>
+	<li>متد سازنده (constructor) کلاس که هنگام ایجاد نمونه از کلاس اجرا می‌شود.</li>
+	<li>ثبت کلاس فعلی به عنوان listener برای رویدادهای OpenFlow، این باعث می‌شود متدهایی مانند handle_PacketIn_ برای رویدادهای مربوطه فراخوانی شوند.</li>
+  </ul>
+</p>
+
+```python
+        import pox.openflow.discovery
+        pox.openflow.discovery.launch()
+```
+
+<p dir="rtl" align="justify">
+  <ul dir="rtl">
+    <li>ایمپورت و راه‌اندازی ماژول کشف توپولوژی POX</li>
+	<li>این ماژول با استفاده از پروتکل LLDP لینک‌های بین سوئیچ‌ها را کشف می‌کند</li>
+  </ul>
+</p>
+
+```python
+        core.openflow_discovery.addListeners(self)
+```
+
+<p dir="rtl" align="justify">
+  <ul dir="rtl">
+    <li>ثبت کلاس فعلی به عنوان listener برای رویدادهای کشف توپولوژی</li>
+	<li>این باعث می‌شود متدهایی مانند handle_LinkEvent_ برای رویدادهای مربوطه فراخوانی شوند</li>
+  </ul>
+</p>
+
+```python
+        self.topology    = {}   # {dpid: {nbr_dpid: out_port}}
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>ایجاد دیکشنری برای نگهداری توپولوژی شبکه:
+		<ul dir="rtl">
+		  <li>کلید: شناسه سوئیچ (dpid)</li>
+		  <li>مقدار: دیکشنری از همسایه‌ها و پورت‌های خروجی به آنها</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+        self.mac_to_port = {}   # {dpid: {mac: port}}
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>ایجاد دیکشنری برای نگاشت MAC آدرس‌ها به پورت‌ها:
+		<ul dir="rtl">
+		  <li>کلید سطح اول: شناسه سوئیچ</li>
+		  <li>کلید سطح دوم: MAC آدرس</li>
+		  <li>مقدار: شماره پورت</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+        self.hosts       = {}   # {IPAddr: (dpid, mac)}
+```
+
+<p dir="rtl" align="justify">
+	<ul dir="rtl">
+	  <li>ایجاد دیکشنری برای نگاشت آدرس IP به میزبان‌ها:
+		<ul dir="rtl">
+		  <li>کلید: آدرس IP</li>
+		  <li>مقدار: tuple شامل (شناسه سوئیچ، MAC آدرس)</li>
+		</ul>
+	  </li>
+	</ul>
+</p>
+
+```python
+        self.graph       = nx.Graph()
+```
+
+<p dir="rtl" align="justify">
+  <ul dir="rtl">
+    <li>ایجاد یک گراف خالی با استفاده از کتابخانه NetworkX</li>
+	<li>این گراف برای محاسبات مسیریابی و یافتن کوتاه‌ترین مسیر استفاده می‌شود</li>
+  </ul>
+</p>
+
+
 # <p dir="rtl" align="justify">بخش 2: مدیریت اتصال سوئیچ‌ها</p>
 
 ```python
