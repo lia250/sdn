@@ -632,7 +632,7 @@ def _handle_PacketIn(self, ev):
 				</ul>
 			  </li>
 			  <li>در غیر این صورت:
-				<ul>
+				<ul dir="rtl">
 					<li>flood کردن بسته به همه پورت‌ها</li>
 				</ul>
 			  </li>
