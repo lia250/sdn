@@ -180,12 +180,13 @@ docker-compose build
 docker-compose up
 ```
 
-# 10. <p dir="rtl" align="justify">برای دسترسی به محیط Mininet:</p>
+# 10. To access the Mininet environment:
 ```
 docker exec -it mininet bash
 ```
 
-# 11. <p dir="rtl" align="justify">. تست شبکه</p>
+# 11. Network test:
+
 ```
 mininet> pingall
 mininet> h1 ping h2
