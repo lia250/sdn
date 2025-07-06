@@ -105,7 +105,7 @@ touch Dockerfile.pox docker-compose.yml adaptive_routing.py adaptive_routing_top
 ```
 
 2. adaptive_routing.py (pox):
-```
+```python
 from pox.core import core
 import pox.openflow.libopenflow_01 as of
 from pox.lib.util import dpidToStr
@@ -249,7 +249,7 @@ def launch():
 ```
 
 3. adaptive_routing_topology.py (mininet):
-```
+```python
 from mininet.topo import Topo
 
 class AdaptiveTopo(Topo):
