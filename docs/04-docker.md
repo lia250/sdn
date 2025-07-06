@@ -27,7 +27,7 @@ CMD ["./pox.py", "log.level", "--DEBUG", "forwarding.adaptive_routing"]
 ```
 
 # 3. Dockerfile Dockerfile Mininet
-```
+```dockerfile
 # Dockerfile.mininet
 FROM ubuntu:20.04
 
@@ -49,7 +49,7 @@ CMD ["mn", "--custom", "adaptive_routing_topology.py", "--controller=remote,ip=p
 ```
 
 # 4. docker-compose.yml
-```
+```yaml
 version: '3'
 
 services:
