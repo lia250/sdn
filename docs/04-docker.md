@@ -1,6 +1,101 @@
+# 1. Install Docker on Ubuntu:
 
 
-# 1. <p dir="rtl" align="justify">فایل‌های زیر را در دایرکتوری sdn-adaptive-routing قرار دهید:</p>
+1. update the system:
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+2. Install the necessary packages:
+```bash
+sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
+```
+
+3. Add the official Docker GPG key:
+```bash
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+```
+
+4. Adding Docker repository to apt sources:
+```bash
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+```
+
+5. Installing the Docker engine:
+```bash
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io
+```
+
+6. Check the installation status:
+```bash
+sudo systemctl status docker
+```
+
+
+7. Add user to docker group (to run commands without sudo)
+```bash
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+# 2. Install Docker Compose 
+
+1. Download the latest version of Docker Compose
+```bash
+sudo curl -L "https://github.com/docker/compose/releases/download/v2.23.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+```
+
+2. apply of executive licenses
+```bash
+sudo chmod +x /usr/local/bin/docker-compose
+```
+
+3. Create a symbolic link
+```bash
+sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+```
+
+4. Check the installed version
+```bash
+docker-compose --version
+```
+
+# 3. Installation test
+
+1. Run the test container 
+```bash
+docker run hello-world
+```
+
+2. View running containers
+```bash
+docker ps
+```
+
+# 4. Docker service management
+
+1. Start the service
+```
+sudo systemctl start docker
+``` 
+```
+sudo systemctl status docker
+```
+
+2. Enable autorun at boot
+```
+sudo systemctl enable docker
+```
+
+3. Stop service
+```
+sudo systemctl stop docker
+``` 
+
+
+
+# 5. <p dir="rtl" align="justify">فایل‌های زیر را در دایرکتوری sdn-adaptive-routing قرار دهید:</p>
 ```bash
 mkdir sdn-adaptive-routing
 cd sdn-adaptive-routing
@@ -9,7 +104,7 @@ touch Dockerfile.pox docker-compose.yml adaptive_routing.py adaptive_routing_top
 
 
 
-# 2. Dockerfile for Pox
+# 6. Dockerfile for Pox
 ```dockerfile
 # Dockerfile.pox
 FROM python:3.9-slim
@@ -26,7 +121,7 @@ COPY adaptive_routing.py /pox/pox/forwarding/adaptive_routing.py
 CMD ["./pox.py", "log.level", "--DEBUG", "forwarding.adaptive_routing"]
 ```
 
-# 3. Dockerfile Dockerfile Mininet
+# 7. Dockerfile Dockerfile Mininet
 ```dockerfile
 # Dockerfile.mininet
 FROM ubuntu:20.04
@@ -48,7 +143,7 @@ COPY adaptive_routing_topology.py .
 CMD ["mn", "--custom", "adaptive_routing_topology.py", "--controller=remote,ip=pox,port=6633", "--topo=adaptive"]
 ```
 
-# 4. docker-compose.yml
+# 8. docker-compose.yml
 ```yaml
 version: '3'
 
@@ -79,24 +174,24 @@ networks:
     driver: bridge
 ```
 
-# 5. <p dir="rtl" align="justify">ساخت و اجرای کانتینرها:</p>
+# 9. <p dir="rtl" align="justify">ساخت و اجرای کانتینرها:</p>
 ```
 docker-compose build
 docker-compose up
 ```
 
-# 6. <p dir="rtl" align="justify">برای دسترسی به محیط Mininet:</p>
+# 10. <p dir="rtl" align="justify">برای دسترسی به محیط Mininet:</p>
 ```
 docker exec -it mininet bash
 ```
 
-# 7. <p dir="rtl" align="justify">. تست شبکه</p>
+# 11. <p dir="rtl" align="justify">. تست شبکه</p>
 ```
 mininet> pingall
 mininet> h1 ping h2
 ```
 
-# 8. <p dir="rtl" align="justify">برای دیباگ بهتر، می‌توانید لاگ‌های POX را با دستور زیر مشاهده کنید:</p>
+# 12. <p dir="rtl" align="justify">برای دیباگ بهتر، می‌توانید لاگ‌های POX را با دستور زیر مشاهده کنید:</p>
 ```
 docker logs -f pox
 ```
