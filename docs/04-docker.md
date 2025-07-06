@@ -95,7 +95,7 @@ sudo systemctl stop docker
 
 
 
-# 5. <p dir="rtl" align="justify">فایل‌های زیر را در دایرکتوری sdn-adaptive-routing قرار دهید:</p>
+# 5. Place the following files in the sdn-adaptive-routing directory:
 ```bash
 mkdir sdn-adaptive-routing
 cd sdn-adaptive-routing
