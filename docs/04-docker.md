@@ -174,7 +174,7 @@ networks:
     driver: bridge
 ```
 
-# 9. <p dir="rtl" align="justify">ساخت و اجرای کانتینرها:</p>
+# 9. Building and running containers:
 ```
 docker-compose build
 docker-compose up
