@@ -192,7 +192,7 @@ mininet> pingall
 mininet> h1 ping h2
 ```
 
-# 12. <p dir="rtl" align="justify">برای دیباگ بهتر، می‌توانید لاگ‌های POX را با دستور زیر مشاهده کنید:</p>
+# 12. For better debugging, you can view POX logs with the following command:
 ```
 docker logs -f pox
 ```
